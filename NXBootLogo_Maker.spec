@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['main.py'],
-             pathex=['E:\\Python_ENV\\BootLogoSwitch'],
+             pathex=['.\'],
              binaries=[],
              datas=[],
              hiddenimports=[],
