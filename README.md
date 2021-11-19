@@ -1,6 +1,6 @@
 # NXBootLogo_Maker
 
-**Some part of the python code come from [switch-logo-patcher](https://github.com/friedkeenan/switch-logo-patcher)**
+**Some part of the python code came from [switch-logo-patcher](https://github.com/friedkeenan/switch-logo-patcher)**
 
 
 ## How to use
