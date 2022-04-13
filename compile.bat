@@ -1,0 +1,1 @@
+pyinstaller.exe main_graphical.py --onefile --icon="icon.ico" --name="NXBootLogo_Maker" --noconsole --add-data "./icon.ico;."
