@@ -1,5 +1,6 @@
 {
   "_comment": "get patches_info here: https://github.com/friedkeenan/switch-logo-patcher/blob/master/gen_patches.py",
+  "version": "14.0.0",
   "patch_info": [
     {
     "C79F22F18169FCD3B3698A881394F6240385CDB1": 1668164,
