@@ -5,7 +5,7 @@
 
 ## How to use
 
-python file need ips.py and Pillow Library.
+python files need ips.py and Pillow Library.
 
 Execute the exe file and type the output's folder name (if it doesn't exist, it will be creating).
 
