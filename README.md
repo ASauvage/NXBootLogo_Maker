@@ -19,7 +19,7 @@ You may have an error if you don't put the patch_info.json with the python scrip
 
 ## Compilation from source
 
-This project was compilating with pyinstaller. You can compilating 
+This project was compilating with pyinstaller. You can compilating files with this command
 ```
 pyinstaller main_graphical.py --onefile --icon="icon.ico" --name="NXBootLogo_Maker" --noconsole --add-data "./icon.ico;."
 ```
