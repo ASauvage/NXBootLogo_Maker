@@ -3,6 +3,7 @@ import io
 import os
 import ips
 import json
+import platform
 import webbrowser
 from pathlib import Path
 from PIL import ImageTk, Image
@@ -12,12 +13,13 @@ from tkinter.filedialog import askdirectory, askopenfile, asksaveasfile
 
 class BootLogoNX(tkinter.Tk):
     def __init__(self):
-        super().__init__(screenName="BootLogoNX")
+        super().__init__()
         self.configure()
         self.title("BootLogoNX")
-        self.iconbitmap("icon.ico")
-        self.geometry("400x420")
-        self.resizable(False, False)
+        if platform.system() == 'Windows':
+            self.iconbitmap("icon.ico")
+        self.geometry("500x420")
+        self.resizable(True, False)
 
         self.patch_location = tkinter.StringVar()
         self.image_location = tkinter.StringVar()
@@ -113,7 +115,7 @@ class BootLogoNX(tkinter.Tk):
         try:
             f = open(patch_file_dir, )
             data = json.load(f)
-            patch_info = data['patch_info'][0]
+            patch_info = data['patch_info']
         except FileNotFoundError:
             print("patch_info.json not found")
             # messagebox
