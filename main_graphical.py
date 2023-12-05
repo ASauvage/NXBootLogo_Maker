@@ -7,47 +7,32 @@ import platform
 import webbrowser
 from pathlib import Path
 from PIL import ImageTk, Image
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 from tkinter.filedialog import askdirectory, askopenfile, asksaveasfile
+
+
+VERSION_MAJOR = 2
+VERSION_MINOR = 0
+VERSION_PATCH = 0
 
 
 class BootLogoNX(tkinter.Tk):
     def __init__(self):
         super().__init__()
+
         self.configure()
         self.title("BootLogoNX")
+        self.geometry("450x420")
+        self.minsize(450, 420)
         if platform.system() == 'Windows':
             self.iconbitmap("icon.ico")
-        self.geometry("500x420")
-        self.resizable(True, False)
 
-        self.patch_location = tkinter.StringVar()
+        self.settings = load_settings('./files/settings.json')
+
         self.image_location = tkinter.StringVar()
-
         self.img = ""
 
         self.main_screen()
-
-    def menu(self):
-        menubar = tkinter.Menu(self)
-
-        menu_file = tkinter.Menu(master=menubar, tearoff=0)
-        menu_file.add_command(label="Create", accelerator="Ctrl+s", command=self.main_screen)
-        menu_file.add_separator()
-        menu_file.add_command(label="Patch downloader", accelerator="Ctrl+r", command=self.link)
-        menu_file.add_command(label="Quit", accelerator="Alt+F4", command=self.destroy)
-        menubar.add_cascade(label="File", menu=menu_file)
-
-        menu_help = tkinter.Menu(master=menubar, tearoff=0)
-        menu_help.add_command(label="Help", command=self.help_screen)
-        menu_help.add_separator()
-        menu_help.add_command(label="About", command=self.about_screen)
-        menubar.add_cascade(label="Help", menu=menu_help)
-
-        self.bind_all("<Control-s>", lambda x: self.create())
-        self.bind_all("<Control-r>", lambda x: self.link())
-
-        self.config(menu=menubar)
 
     def clear_window(self):
         _list = self.winfo_children()
@@ -55,35 +40,66 @@ class BootLogoNX(tkinter.Tk):
             x.destroy()
         self.menu()
 
+    def menu(self):
+        menubar = tkinter.Menu(self)
+
+        menu_file = tkinter.Menu(master=menubar, tearoff=0)
+        menu_file.add_command(label='Home', command=self.main_screen)
+        menu_file.add_separator()
+        menu_file.add_command(label='Quit', accelerator='Alt+F4', command=self.destroy)
+        menubar.add_cascade(label='Software', menu=menu_file)
+
+        menu_settings = tkinter.Menu(master=menubar, tearoff=0)
+        menu_settings.add_command(label='General Settings', accelerator='Ctrl+r', command=self.general_settings_screen)
+        menubar.add_cascade(label='Settings', menu=menu_settings)
+
+        menu_help = tkinter.Menu(master=menubar, tearoff=0)
+        menu_help.add_command(label='Help', accelerator='Ctrl+h', command=self.help_screen)
+        menu_help.add_command(label='About', command=self.about_screen)
+        menubar.add_cascade(label='Help', menu=menu_help)
+
+        self.bind_all("<Control-r>", lambda x: self.general_settings_screen())
+        self.bind_all("<Control-h>", lambda x: self.help_screen())
+
+        self.config(menu=menubar)
+
     # Main Screen
     def main_screen(self):
         self.clear_window()
 
-        data_frame = tkinter.LabelFrame(self, text="Files", borderwidth=2)
-        data_frame.pack(pady=15, expand="yes")
-        patch_frame = tkinter.Frame(data_frame, borderwidth=5, width=200)
-        patch_frame.pack()
+        general_frame = tkinter.LabelFrame(self, text="Choose your options")
+        general_frame.pack(fill=tkinter.BOTH, padx=15)
 
-        image_frame = tkinter.Frame(data_frame, borderwidth=5, width=200)
-        image_frame.pack()
+        # FW version
+        frame = tkinter.Frame(general_frame)
+        frame.pack(fill=tkinter.BOTH, padx=10, pady=1, anchor='w')
+        tkinter.Label(frame, text='FW version: ', width=10, anchor='e').pack(side=tkinter.LEFT, anchor='e')
+        server_combobox = ttk.Combobox(frame, values=["Last FW supported", *(server for server in reversed(list(self.settings['build_id'].keys())))])
+        server_combobox.set("Last FW supported")
+        server_combobox.pack(pady=5, anchor='w')
 
-        patch_location_text = tkinter.Entry(patch_frame, textvariable=self.patch_location, width=40)
-        patch_location_text.pack(side=tkinter.LEFT, pady=5)
-        patch_location_button = tkinter.Button(patch_frame, text="Patch file...", width=10, command=self.patch_location_command)
-        patch_location_button.pack(side=tkinter.RIGHT, padx=20, pady=5)
+        # Image path
+        frame = tkinter.Frame(general_frame)
+        frame.pack(fill=tkinter.BOTH, padx=10, pady=1, anchor='w')
+        tkinter.Label(frame, text='Image: ', width=10, anchor='e').pack(side=tkinter.LEFT, anchor='e')
+        image_location_button = tkinter.Button(frame, text="Image...", width=6, command=self.image_location_command)
+        image_location_button.pack(side=tkinter.RIGHT, padx=1, pady=0, anchor='e')
+        image_entry = tkinter.Entry(frame)
+        image_entry.pack(fill=tkinter.BOTH, padx=0, pady=5, anchor='e')
 
-        image_location_text = tkinter.Entry(image_frame, textvariable=self.image_location, width=40)
-        image_location_text.pack(side=tkinter.LEFT, pady=5)
-        image_location_button = tkinter.Button(image_frame, text="Image...", width=10, command=self.image_location_command)
-        image_location_button.pack(side=tkinter.RIGHT, padx=20, pady=5)
+        preview_frame = tkinter.Frame(self)
+        preview_frame.pack(fill=tkinter.BOTH, padx=15, pady=15)
 
-        self.image_preview = tkinter.Canvas(self, borderwidth=0, width=300, height=200, background='black')
+        self.image_preview = tkinter.Canvas(preview_frame, borderwidth=0, width=300, height=200, background='black')
         self.img_changing = self.image_preview.create_image(150, 0, anchor=tkinter.N, image=self.img)
-        # self.image_preview.create_text(150, 100, text="No image selected", font="Arial 16 italic", fill="white")
+        self.image_preview.create_text(150, 100, text="No image selected", font="Arial 16 italic", fill="red")
         self.image_preview.pack()
 
         create_button = tkinter.Button(self, text="Create at...", width=10, command=self.create)
-        create_button.pack(side=tkinter.RIGHT, padx=15, pady=15)
+        create_button.pack(fill=tkinter.BOTH, padx=15, pady=15)
+
+    def general_settings_screen(self):
+        self.clear_window()
 
     def patch_location_command(self):
         file = askopenfile(title="Select your patch_info file...", mode="r", filetypes=[("Json Files", "*.json"), ("Other Files", "*")])
@@ -117,7 +133,7 @@ class BootLogoNX(tkinter.Tk):
             data = json.load(f)
             patch_info = data['patch_info']
         except FileNotFoundError:
-            print("patch_info.json not found")
+            print("settings.json not found")
             # messagebox
             return
 
@@ -170,7 +186,7 @@ class BootLogoNX(tkinter.Tk):
     def help_screen(self):
         self.clear_window()
 
-        tkinter.Label(self, text="How to make your patch_info.json", font="Arial 16 bold underline", fg="gray").pack(pady=35)
+        tkinter.Label(self, text="How to make your settings.json", font="Arial 16 bold underline", fg="gray").pack(pady=35)
         tkinter.Label(self, text="""
         Create a .json file and write:
         {
@@ -186,5 +202,18 @@ class BootLogoNX(tkinter.Tk):
         link.bind("<Button-1>", lambda e: webbrowser.open_new_tab(r"https://github.com/ASauvage"))
 
 
-app = BootLogoNX()
-app.mainloop()
+def load_settings(path: str):
+    with open(path, 'r') as file:
+        settings = json.load(file)
+
+    return settings
+
+
+def save_settings(path: str, settings: dict):
+    with open(path, 'w') as file:
+        json.dump(settings, file, indent=4)
+
+
+if __name__ == "__main__":
+    app = BootLogoNX()
+    app.mainloop()
