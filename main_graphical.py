@@ -6,6 +6,7 @@ import json
 import platform
 import webbrowser
 from pathlib import Path
+from requests import get
 from PIL import ImageTk, Image
 from tkinter import ttk, messagebox
 from tkinter.filedialog import askdirectory, askopenfile, asksaveasfile
@@ -51,6 +52,7 @@ class BootLogoNX(tkinter.Tk):
 
         menu_settings = tkinter.Menu(master=menubar, tearoff=0)
         menu_settings.add_command(label='General Settings', accelerator='Ctrl+r', command=self.general_settings_screen)
+        menu_settings.add_command(label='Patches Settings', accelerator='Ctrl+p', command=self.patches_setting_screen)
         menubar.add_cascade(label='Settings', menu=menu_settings)
 
         menu_help = tkinter.Menu(master=menubar, tearoff=0)
@@ -78,33 +80,93 @@ class BootLogoNX(tkinter.Tk):
         server_combobox.set("Last FW supported")
         server_combobox.pack(pady=5, anchor='w')
 
-        # Image path
+        # New Image path
         frame = tkinter.Frame(general_frame)
         frame.pack(fill=tkinter.BOTH, padx=10, pady=1, anchor='w')
         tkinter.Label(frame, text='Image: ', width=10, anchor='e').pack(side=tkinter.LEFT, anchor='e')
-        image_location_button = tkinter.Button(frame, text="Image...", width=6, command=self.image_location_command)
-        image_location_button.pack(side=tkinter.RIGHT, padx=1, pady=0, anchor='e')
-        image_entry = tkinter.Entry(frame)
-        image_entry.pack(fill=tkinter.BOTH, padx=0, pady=5, anchor='e')
+        new_image_location_button = tkinter.Button(frame, text="...", width=3, command=self.image_location_command)
+        new_image_location_button.pack(side=tkinter.RIGHT, padx=1, pady=0, anchor='e')
+        new_image_entry = tkinter.Entry(frame)
+        new_image_entry.pack(fill=tkinter.BOTH, padx=0, pady=5, anchor='e')
+
+        # Old logo path
+        frame = tkinter.Frame(general_frame)
+        frame.pack(fill=tkinter.BOTH, padx=10, pady=1, anchor='w')
+        tkinter.Label(frame, text='Old logo: ', width=10, anchor='e').pack(side=tkinter.LEFT, anchor='e')
+        old_image_location_button = tkinter.Button(frame, text="...", width=3, command=self.image_location_command)
+        old_image_location_button.pack(side=tkinter.RIGHT, padx=1, pady=0, anchor='e')
+        old_image_entry = tkinter.Entry(frame)
+        old_image_entry.pack(fill=tkinter.BOTH, padx=0, pady=5, anchor='e')
 
         preview_frame = tkinter.Frame(self)
-        preview_frame.pack(fill=tkinter.BOTH, padx=15, pady=15)
+        preview_frame.pack(fill=tkinter.BOTH, padx=15, pady=30)
 
         self.image_preview = tkinter.Canvas(preview_frame, borderwidth=0, width=300, height=200, background='black')
         self.img_changing = self.image_preview.create_image(150, 0, anchor=tkinter.N, image=self.img)
-        self.image_preview.create_text(150, 100, text="No image selected", font="Arial 16 italic", fill="red")
+        self.image_preview.create_text(150, 100, text="No image selected", font="Arial 16 italic", fill="red", tags="noimg")
         self.image_preview.pack()
 
-        create_button = tkinter.Button(self, text="Create at...", width=10, command=self.create)
-        create_button.pack(fill=tkinter.BOTH, padx=15, pady=15)
+        create_button = tkinter.Button(self, text="Create at...", width=30, command=self.create)
+        create_button.pack(side=tkinter.BOTTOM, padx=10, pady=5)
 
     def general_settings_screen(self):
         self.clear_window()
 
-    def patch_location_command(self):
-        file = askopenfile(title="Select your patch_info file...", mode="r", filetypes=[("Json Files", "*.json"), ("Other Files", "*")])
-        if file is not None:
-            self.patch_location.set(file.name)
+    def patches_setting_screen(self):
+        self.clear_window()
+
+        def save():
+            self.settings = json.loads(patches_text.get("1.0", tkinter.END))
+
+            save_settings('./files/settings.json', self.settings)
+            messagebox.showinfo(message='Patches settings saved successfully!')
+
+        def load():
+            patches.set(value=json.dumps(self.settings, indent=4))
+            patches_text.replace("1.0", tkinter.END, patches.get())
+
+        def get_patches():
+            response = get('https://raw.githubusercontent.com/ASauvage/NXBootLogo_Maker/main/files/settings.json')
+            if response.status_code == '200':
+                patches.set(value=response.json())
+                patches_text.replace("1.0", tkinter.END, patches.get())
+                messagebox.showinfo(message='Patches settings successfully downloaded!')
+            else:
+                messagebox.showinfo(message=f'Fail to get patches settings! [code:{response.status_code}]')
+
+        # PATCHES SETTINGS
+        patches_frame = tkinter.LabelFrame(self, text='Patches settings')
+        patches_frame.pack(fill=tkinter.BOTH, padx=15, pady=7, expand=True)
+
+        patches = tkinter.StringVar(value="")
+
+        # patches
+        frame = tkinter.Frame(patches_frame)
+        frame.pack(fill=tkinter.BOTH, expand=True, padx=15, pady=6, anchor='w')
+
+        x_scrollbar = tkinter.Scrollbar(frame, orient='horizontal')
+        x_scrollbar.pack(side=tkinter.BOTTOM, fill='x')
+        y_scrollbar = tkinter.Scrollbar(frame, orient='vertical')
+        y_scrollbar.pack(side=tkinter.RIGHT, fill='y')
+
+        patches_text = tkinter.Text(frame, height=16, wrap=tkinter.NONE, xscrollcommand=x_scrollbar.set,
+                                    yscrollcommand=y_scrollbar.set)
+        patches_text.pack(fill=tkinter.BOTH, expand=True)
+
+        x_scrollbar.config(command=patches_text.xview)
+        y_scrollbar.config(command=patches_text.yview)
+
+        # button
+        frame = tkinter.Frame(patches_frame)
+        frame.pack(fill=tkinter.BOTH, expand=True, padx=15, pady=6, anchor='w')
+
+        get_button = tkinter.Button(frame, text='Get last patches', width=30, command=get_patches)
+        get_button.pack(side=tkinter.LEFT, padx=10, anchor=tkinter.E)
+
+        save_button = tkinter.Button(frame, text='Save', width=30, command=save)
+        save_button.pack(side=tkinter.RIGHT, padx=10, anchor=tkinter.E)
+
+        load()
 
     def image_location_command(self):
         file = askopenfile(title="Select your image...", mode="r", filetypes=[("DDS Images", "*.dds"), ("JPEG Images", "*.jpeg"), ("JPEG Images", "*.jpg"), ("Other Files", "*")])
@@ -114,6 +176,7 @@ class BootLogoNX(tkinter.Tk):
                 return
             self.image_location.set(file.name)
             self.img = ImageTk.PhotoImage(Image.open(self.image_location.get()).resize((176, 200)))
+            self.image_preview.delete("noimg")
             self.image_preview.itemconfigure(self.img_changing, image=self.img)
 
     def create(self):
@@ -125,11 +188,8 @@ class BootLogoNX(tkinter.Tk):
         # isfile for image
         image_file_dir = Path(self.image_location.get())
 
-        # isfile for patchinfo
-        patch_file_dir = Path(self.patch_location.get())
-
         try:
-            f = open(patch_file_dir, )
+            f = open("./files/settings.json", )
             data = json.load(f)
             patch_info = data['patch_info']
         except FileNotFoundError:
@@ -172,7 +232,7 @@ class BootLogoNX(tkinter.Tk):
         messagebox.showinfo(title="Done", message=f"Files created at \"{output_file_dir}\"")
 
     def link(self):
-        webbrowser.open_new(r"https://github.com/ASauvage/NXBootLogo_Maker/tree/main/patches")
+        webbrowser.open_new(r"https://github.com/ASauvage/NXBootLogo_Maker/tree/main/files")
 
     def about_screen(self):
         self.clear_window()
